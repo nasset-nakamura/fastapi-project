@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from .routers import albums, comments, photos, posts, users
+from .routers import albums, comments, photos, posts, todos, users
 
 app = FastAPI()
 
@@ -35,6 +35,12 @@ app.include_router(
     posts.router,
     prefix="/posts",
     tags=["posts"],
+)
+
+app.include_router(
+    todos.router,
+    prefix="/todos",
+    tags=["todos"],
 )
 
 app.include_router(
