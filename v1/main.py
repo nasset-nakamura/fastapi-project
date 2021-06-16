@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from .routers import posts, users
+from .routers import comments, posts, users
 
 app = FastAPI()
 
@@ -11,6 +11,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
+)
+
+app.include_router(
+    comments.router,
+    prefix="/comments",
+    tags=["comments"],
 )
 
 app.include_router(
