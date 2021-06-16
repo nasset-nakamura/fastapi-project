@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from .routers import users
+from .routers import posts, users
 
 app = FastAPI()
 
@@ -11,6 +11,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
+)
+
+app.include_router(
+    posts.router,
+    prefix="/posts",
+    tags=["posts"],
 )
 
 app.include_router(
