@@ -1,6 +1,14 @@
 from fastapi import APIRouter
+from pydantic import BaseModel
 import requests
 from typing import Optional
+
+
+class User(BaseModel):
+    name: str
+    username: Optional[str] = None
+    email: str
+
 
 router = APIRouter()
 
@@ -83,6 +91,18 @@ async def read_user(
     return {
         "status_code": status_code,
         "user": tmp_user_2,
+    }
+
+
+@router.post("/")
+async def create_user(user: User):
+    id = max([user["id"] for user in users]) + 1
+    tmp_user = {"id": id, **user.dict()}
+    users.append(tmp_user)
+
+    return {
+        "status_code": 201,
+        "user": tmp_user,
     }
 
 
