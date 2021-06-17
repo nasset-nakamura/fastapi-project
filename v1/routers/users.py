@@ -84,3 +84,21 @@ async def read_user(
         "status_code": status_code,
         "user": tmp_user_2,
     }
+
+
+@router.delete("/{id}")
+async def delete_user(
+    id: int,
+):
+    index = None
+    for i, user in enumerate(users):
+        if user["id"] == int(id):
+            index = i
+            break
+
+    if index:
+        users.pop(index)
+
+    return {
+        "status_code": 202,
+    }
