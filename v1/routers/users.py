@@ -58,3 +58,29 @@ async def read_users(
         "status_code": status_code,
         "users": tmp_users_3,
     }
+
+
+@router.get("/{id}")
+async def read_user(
+    id: int,
+    fields: Optional[str] = None,
+):
+    # id
+    for user in users:
+        if user["id"] == int(id):
+            tmp_user_1 = user
+            break
+
+    # key-value
+    if fields:
+        tmp_user_2 = {}
+        for field in fields.split(","):
+            if field in tmp_user_1:
+                tmp_user_2[field] = tmp_user_1[field]
+    else:
+        tmp_user_2 = tmp_user_1
+
+    return {
+        "status_code": status_code,
+        "user": tmp_user_2,
+    }
