@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Body, Path, Query
 import requests
 from typing import Optional
 
@@ -115,7 +115,11 @@ async def read_user(
 
 
 @router.post("/")
-async def create_user(user: User):
+async def create_user(
+    user: User = Body(
+        ...,
+    ),
+):
     id = max([user["id"] for user in users]) + 1
     tmp_user = {"id": id, **user.dict()}
     users.append(tmp_user)
@@ -123,6 +127,52 @@ async def create_user(user: User):
     return {
         "status_code": 201,
         "user": tmp_user,
+    }
+
+
+@router.put("/{id}")
+async def create_user_by_specifying_id(
+    id: int = Path(
+        ...,
+        ge=1,
+        description="追加するデータのidを指定する。",
+    ),
+    user: User = Body(
+        ...,
+    ),
+):
+    tmp_user = {"id": id, **user.dict()}
+    users.append(tmp_user)
+
+    return {
+        "status_code": 201,
+        "user": tmp_user,
+    }
+
+
+@router.patch("/{id}")
+async def update_user(
+    id: int = Path(
+        ...,
+        ge=1,
+        description="更新するデータのidを指定する。",
+    ),
+    user: User = Body(
+        ...,
+    ),
+):
+    index = None
+    for i, tmp_user in enumerate(users):
+        if tmp_user["id"] == id:
+            index = i
+            break
+
+    if index >= 0:
+        users[index].update(**user.dict())
+
+    return {
+        "status_code": 200,
+        "user": users[index],
     }
 
 
