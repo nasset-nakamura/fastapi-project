@@ -1,8 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Path, Query
 import requests
 from typing import Optional
 
 from ..schemas.user import User
+
 
 router = APIRouter()
 
@@ -14,11 +15,29 @@ users = response.json()
 
 @router.get("/")
 async def read_users(
-    offset: int = 0,
-    limit: int = 10,
-    ids: Optional[str] = None,
-    fields: Optional[str] = None,
-    orders: Optional[str] = None
+    offset: int = Query(
+        0,
+        ge=0,
+        description="何件目から取得するかを指定する。<br>`limit`パラメータと組み合わせてページング処理が可能。",
+    ),
+    limit: int = Query(
+        10,
+        ge=0,
+        le=30,
+        description="取得件数を指定する。<br>`offset`パラメータと組み合わせてページング処理が可能。",
+    ),
+    ids: Optional[str] = Query(
+        None,
+        description="取得するデータのidを`1,2,3`のようにカンマ区切りで指定する。",
+    ),
+    fields: Optional[str] = Query(
+        None,
+        description="取得するデータのフィールドを`id,name,email`のようにカンマ区切りで指定する。",
+    ),
+    orders: Optional[str] = Query(
+        None,
+        description="取得するデータの並べ替えを行う。<br>指定可能なフィールドは**1つのみ**。<br>降順は`-id`のように、フィールド名の先頭に`- (マイナス)`を付与。",
+    ),
 ):
     # id
     if ids:
@@ -64,8 +83,15 @@ async def read_users(
 
 @router.get("/{id}")
 async def read_user(
-    id: int,
-    fields: Optional[str] = None,
+    id: int = Path(
+        ...,
+        ge=1,
+        description="取得するデータのidを指定する。",
+    ),
+    fields: Optional[str] = Query(
+        None,
+        description="取得するデータのフィールドを`id,name,email`のようにカンマ区切りで指定する。",
+    ),
 ):
     # id
     for user in users:
@@ -102,7 +128,11 @@ async def create_user(user: User):
 
 @router.delete("/{id}")
 async def delete_user(
-    id: int,
+    id: int = Path(
+        ...,
+        ge=1,
+        description="削除するデータのidを指定する。",
+    ),
 ):
     index = None
     for i, user in enumerate(users):
