@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Path, Query
+from fastapi import APIRouter, Body, Path, Query, Response, status
 import requests
 from typing import Optional
 
@@ -8,13 +8,14 @@ from ..schemas.user import User
 router = APIRouter()
 
 url = 'https://jsonplaceholder.typicode.com/users/'
-response = requests.get(url)
-status_code = response.status_code
-users = response.json()
+res = requests.get(url)
+status_code = res.status_code
+users = res.json()
 
 
 @router.get("/")
 async def read_users(
+    response: Response,
     offset: int = Query(
         0,
         ge=0,
@@ -49,6 +50,10 @@ async def read_users(
     else:
         tmp_users_1 = users
 
+    if len(tmp_users_1) == 0:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {"message": "user not found"}
+
     # key-value、row
     if fields:
         tmp_users_2 = []
@@ -57,6 +62,9 @@ async def read_users(
             for field in fields.split(","):
                 if field in user:
                     tmp_user[field] = user[field]
+                else:
+                    response.status_code = status.HTTP_400_BAD_REQUEST
+                    return {"message": f"field: {field} not found"}
             tmp_users_2.append(tmp_user)
     else:
         tmp_users_2 = tmp_users_1[offset:offset + limit]
@@ -65,24 +73,30 @@ async def read_users(
     if orders:
         if orders[0] == "-":
             orders = orders[1:]
-            tmp_users_3 = sorted(
-                tmp_users_2, key=lambda item: (
-                    item[orders]), reverse=True)
+            if orders in tmp_users_2[0]:
+                tmp_users_3 = sorted(
+                    tmp_users_2, key=lambda item: (
+                        item[orders]), reverse=True)
+            else:
+                response.status_code = status.HTTP_400_BAD_REQUEST
+                return {"message": f"field: {orders} not found"}
         else:
-            tmp_users_3 = sorted(
-                tmp_users_2, key=lambda item: (
-                    item[orders]))
+            if orders in tmp_users_2[0]:
+                tmp_users_3 = sorted(
+                    tmp_users_2, key=lambda item: (
+                        item[orders]))
+            else:
+                response.status_code = status.HTTP_400_BAD_REQUEST
+                return {"message": f"field: {orders} not found"}
     else:
         tmp_users_3 = tmp_users_2
 
-    return {
-        "status_code": status_code,
-        "users": tmp_users_3,
-    }
+    return tmp_users_3
 
 
 @router.get("/{id}")
 async def read_user(
+    response: Response,
     id: int = Path(
         ...,
         ge=1,
@@ -94,10 +108,15 @@ async def read_user(
     ),
 ):
     # id
+    tmp_user_1 = None
     for user in users:
-        if user["id"] == int(id):
+        if user["id"] == id:
             tmp_user_1 = user
             break
+
+    if tmp_user_1 is None:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {"message": "user not found"}
 
     # key-value
     if fields:
@@ -105,16 +124,16 @@ async def read_user(
         for field in fields.split(","):
             if field in tmp_user_1:
                 tmp_user_2[field] = tmp_user_1[field]
+            else:
+                response.status_code = status.HTTP_400_BAD_REQUEST
+                return {"message": f"field: {field} not found"}
     else:
         tmp_user_2 = tmp_user_1
 
-    return {
-        "status_code": status_code,
-        "user": tmp_user_2,
-    }
+    return tmp_user_2
 
 
-@router.post("/")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_user(
     user: User = Body(
         ...,
@@ -124,14 +143,12 @@ async def create_user(
     tmp_user = {"id": id, **user.dict()}
     users.append(tmp_user)
 
-    return {
-        "status_code": 201,
-        "user": tmp_user,
-    }
+    return tmp_user
 
 
-@router.put("/{id}")
+@router.put("/{id}", status_code=status.HTTP_201_CREATED)
 async def create_user_by_specifying_id(
+    response: Response,
     id: int = Path(
         ...,
         ge=1,
@@ -141,17 +158,19 @@ async def create_user_by_specifying_id(
         ...,
     ),
 ):
+    for tmp_user in users:
+        if tmp_user["id"] == id:
+            response.status_code = status.HTTP_409_CONFLICT
+            return {"message": f"id.{id} already exists"}
     tmp_user = {"id": id, **user.dict()}
     users.append(tmp_user)
 
-    return {
-        "status_code": 201,
-        "user": tmp_user,
-    }
+    return tmp_user
 
 
 @router.patch("/{id}")
 async def update_user(
+    response: Response,
     id: int = Path(
         ...,
         ge=1,
@@ -167,17 +186,18 @@ async def update_user(
             index = i
             break
 
-    if index >= 0:
+    if index is None:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {"message": "user not found"}
+    else:
         users[index].update(**user.dict())
 
-    return {
-        "status_code": 200,
-        "user": users[index],
-    }
+    return users[index]
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", status_code=status.HTTP_202_ACCEPTED)
 async def delete_user(
+    response: Response,
     id: int = Path(
         ...,
         ge=1,
@@ -186,13 +206,14 @@ async def delete_user(
 ):
     index = None
     for i, user in enumerate(users):
-        if user["id"] == int(id):
+        if user["id"] == id:
             index = i
             break
 
-    if index:
+    if index is None:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {"message": "user not found"}
+    else:
         users.pop(index)
 
-    return {
-        "status_code": 202,
-    }
+    return
