@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Path, Query, Response, status
+from fastapi import APIRouter, Body, Path, Query, Response, status, HTTPException
 import requests
 from typing import Optional
 
@@ -115,8 +115,9 @@ async def read_user(
             break
 
     if tmp_user_1 is None:
-        response.status_code = status.HTTP_404_NOT_FOUND
-        return {"message": "user not found"}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="user not found")
 
     # key-value
     if fields:
@@ -125,8 +126,9 @@ async def read_user(
             if field in tmp_user_1:
                 tmp_user_2[field] = tmp_user_1[field]
             else:
-                response.status_code = status.HTTP_400_BAD_REQUEST
-                return {"message": f"field: {field} not found"}
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"field: {field} not found")
     else:
         tmp_user_2 = tmp_user_1
 
