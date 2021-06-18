@@ -13,7 +13,7 @@ status_code = res.status_code
 users = res.json()
 
 
-@router.get("/")
+@router.get("/", summary="ユーザーのリストを取得する")
 async def read_users(
     response: Response,
     offset: int = Query(
@@ -94,7 +94,7 @@ async def read_users(
     return tmp_users_3
 
 
-@router.get("/{id}")
+@router.get("/{id}", summary="ユーザーを1件取得する")
 async def read_user(
     response: Response,
     id: int = Path(
@@ -135,7 +135,7 @@ async def read_user(
     return tmp_user_2
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED, summary="ユーザーを追加する")
 async def create_user(
     user: User = Body(
         ...,
@@ -148,7 +148,9 @@ async def create_user(
     return tmp_user
 
 
-@router.put("/{id}", status_code=status.HTTP_201_CREATED)
+@router.put("/{id}",
+            status_code=status.HTTP_201_CREATED,
+            summary="idを指定してユーザーを追加する")
 async def create_user_by_specifying_id(
     response: Response,
     id: int = Path(
@@ -170,7 +172,7 @@ async def create_user_by_specifying_id(
     return tmp_user
 
 
-@router.patch("/{id}")
+@router.patch("/{id}", summary="ユーザーを更新する")
 async def update_user(
     response: Response,
     id: int = Path(
@@ -197,7 +199,11 @@ async def update_user(
     return users[index]
 
 
-@router.delete("/{id}", status_code=status.HTTP_202_ACCEPTED)
+@router.delete(
+    "/{id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="ユーザーを削除する",
+)
 async def delete_user(
     response: Response,
     id: int = Path(
@@ -206,6 +212,54 @@ async def delete_user(
         description="削除するデータのidを指定する。",
     ),
 ):
+    """
+    # docstringの記載内容もOpenAPIに反映される
+
+    ## 文字装飾
+
+    **太字**<br>
+    *斜体*<br>
+    ~~取り消し線~~<br>
+    文字色を<font color='red'>赤</font>に変更
+
+    ---
+
+    ## リスト
+
+    - 番号なしリスト
+    - 番号なしリスト
+    - 番号なしリスト
+
+    1. 番号ありリスト
+    1. 番号ありリスト
+    1. 番号ありリスト
+
+    ---
+
+    ## テーブル
+
+    |左寄せ|中央寄せ|右寄せ|
+    |:---|:---:|---:|
+    |aaa|bbb|ccc|
+    |ddd|eee|fff|
+
+    ---
+
+    ## コード
+
+    `title`タグにページタイトルを記載
+
+    ```
+    def add(a, b):
+        return a + b
+    ```
+
+    ---
+
+    ## リンク
+
+    [Google](https://google.com)
+    """
     index = None
     for i, user in enumerate(users):
         if user["id"] == id:
