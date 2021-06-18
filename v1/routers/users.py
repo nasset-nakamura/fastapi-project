@@ -1,14 +1,8 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
 import requests
 from typing import Optional
 
-
-class User(BaseModel):
-    name: str
-    username: Optional[str] = None
-    email: str
-
+from ..schemas.user import User
 
 router = APIRouter()
 
