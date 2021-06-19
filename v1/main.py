@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from .routers import albums, comments, photos, posts, todos, users
+from .routers import albums, auth, comments, photos, posts, todos, users
+from .utils import auth as auth_util
 
 app = FastAPI()
 
@@ -17,6 +18,12 @@ app.include_router(
     albums.router,
     prefix="/albums",
     tags=["albums"],
+)
+
+app.include_router(
+    auth.router,
+    prefix="/auth",
+    tags=["auth"],
 )
 
 app.include_router(
@@ -47,9 +54,10 @@ app.include_router(
     users.router,
     prefix="/users",
     tags=["users"],
+    dependencies=[Depends(auth_util.get_current_active_user)]
 )
 
 
-@app.get("/")
+@app.get("/", dependencies=[Depends(auth_util.get_current_active_user)])
 def root():
     return {"message": "v1 root"}

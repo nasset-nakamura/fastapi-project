@@ -30,3 +30,14 @@ class User(BaseModel):
                 "email": "test@example.com",
             }
         }
+
+
+class UserDB(User):
+    hashed_password: str = Field(
+        ...,
+        title="ハッシュ",
+    ),
+    disabled: Optional[bool] = Field(
+        ...,
+        title="無効",
+    )

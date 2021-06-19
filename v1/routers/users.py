@@ -4,7 +4,6 @@ from typing import Optional
 
 from ..schemas.user import User
 
-
 router = APIRouter()
 
 url = 'https://jsonplaceholder.typicode.com/users/'
