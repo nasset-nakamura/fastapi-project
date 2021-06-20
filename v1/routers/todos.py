@@ -1,7 +1,9 @@
 from fastapi import APIRouter
 import requests
 
-router = APIRouter()
+from ..utils import logging
+
+router = APIRouter(route_class=logging.LoggingContextRoute)
 
 url = 'https://jsonplaceholder.typicode.com/todos/'
 response = requests.get(url)

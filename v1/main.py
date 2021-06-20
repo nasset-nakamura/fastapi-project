@@ -1,8 +1,9 @@
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from .routers import albums, auth, comments, photos, posts, todos, users
 from .utils import auth as auth_util
+from .utils import logging
 
 app = FastAPI()
 
@@ -57,12 +58,7 @@ app.include_router(
     dependencies=[Depends(auth_util.get_current_active_user)]
 )
 
-
-@app.middleware("http")
-async def access_log(request: Request, call_next):
-    print(f"[Middleware] {request.method}: {request.url}")
-    response = await call_next(request)
-    return response
+app.router.route_class = logging.LoggingContextRoute
 
 
 @app.get("/", dependencies=[Depends(auth_util.get_current_active_user)])

@@ -5,8 +5,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from ..schemas.auth import Token
 from ..utils import auth
+from ..utils import logging
 
-router = APIRouter()
+router = APIRouter(route_class=logging.LoggingContextRoute)
 
 
 @router.get("/password_hash")

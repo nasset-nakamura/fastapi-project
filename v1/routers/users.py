@@ -3,8 +3,9 @@ import requests
 from typing import Optional
 
 from ..schemas.user import User
+from ..utils import logging
 
-router = APIRouter()
+router = APIRouter(route_class=logging.LoggingContextRoute)
 
 url = 'https://jsonplaceholder.typicode.com/users/'
 res = requests.get(url)
