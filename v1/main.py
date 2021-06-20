@@ -5,7 +5,22 @@ from .routers import albums, auth, comments, others, photos, posts, todos, users
 from .utils import auth as auth_util
 from .utils import logging
 
-app = FastAPI()
+description = """
+## FastAPI
+
+Markdownで記載可能。
+
+- high performance
+- easy to learn
+- fast to code
+- ready for production
+"""
+
+app = FastAPI(
+    title="FastAPI Project Document",
+    description=description,
+    version="1.0.0",
+)
 
 app.add_middleware(
     CORSMiddleware,
