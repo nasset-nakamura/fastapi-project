@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from .routers import albums, auth, comments, photos, posts, todos, users
+from .routers import albums, auth, comments, others, photos, posts, todos, users
 from .utils import auth as auth_util
 from .utils import logging
 
@@ -31,6 +31,12 @@ app.include_router(
     comments.router,
     prefix="/comments",
     tags=["comments"],
+)
+
+app.include_router(
+    others.router,
+    prefix="/others",
+    tags=["others"],
 )
 
 app.include_router(
