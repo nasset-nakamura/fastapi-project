@@ -16,10 +16,37 @@ Markdownで記載可能。
 - ready for production
 """
 
+tags_metadata = [{"name": "default",
+                  "description": "Default Endpoint",
+                  },
+                 {"name": "auth",
+                  "description": "OAuth2 with Password (and hashing), Bearer with JWT tokens",
+                  },
+                 {"name": "users",
+                  "description": "JSON Placeholder - Users Resource",
+                  "externalDocs": {"description": "URL",
+                                   "url": "https://jsonplaceholder.typicode.com/users",
+                                   },
+                  },
+                 {"name": "posts",
+                  "description": "JSON Placeholder - Posts Resource",
+                  "externalDocs": {"description": "URL",
+                                   "url": "https://jsonplaceholder.typicode.com/posts",
+                                   },
+                  },
+                 {"name": "comments",
+                  "description": "JSON Placeholder - Comments Resource",
+                  "externalDocs": {"description": "URL",
+                                   "url": "https://jsonplaceholder.typicode.com/comments",
+                                   },
+                  },
+                 ]
+
 app = FastAPI(
     title="FastAPI Project Document",
-    description=description,
     version="1.0.0",
+    description=description,
+    openapi_tags=tags_metadata,
 )
 
 app.add_middleware(
