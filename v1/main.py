@@ -71,12 +71,14 @@ app.include_router(
     posts.router,
     prefix="/posts",
     tags=["posts"],
+    dependencies=[Depends(auth_util.get_current_active_user)]
 )
 
 app.include_router(
     comments.router,
     prefix="/comments",
     tags=["comments"],
+    dependencies=[Depends(auth_util.get_current_active_user)]
 )
 
 app.include_router(
