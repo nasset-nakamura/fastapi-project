@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from .routers import albums, auth, comments, others, photos, posts, todos, users
+from .routers import auth, comments, others, posts, users
 from .utils import auth as auth_util
 from .utils import logging
 
@@ -40,6 +40,9 @@ tags_metadata = [{"name": "default",
                                    "url": "https://jsonplaceholder.typicode.com/comments",
                                    },
                   },
+                 {"name": "others",
+                  "description": "Other Endpoint",
+                  },
                  ]
 
 app = FastAPI(
@@ -58,33 +61,10 @@ app.add_middleware(
 )
 
 app.include_router(
-    albums.router,
-    prefix="/albums",
-    tags=["albums"],
-)
-
-app.include_router(
-    auth.router,
-    prefix="/auth",
-    tags=["auth"],
-)
-
-app.include_router(
-    comments.router,
-    prefix="/comments",
-    tags=["comments"],
-)
-
-app.include_router(
-    others.router,
-    prefix="/others",
-    tags=["others"],
-)
-
-app.include_router(
-    photos.router,
-    prefix="/photos",
-    tags=["photos"],
+    users.router,
+    prefix="/users",
+    tags=["users"],
+    dependencies=[Depends(auth_util.get_current_active_user)]
 )
 
 app.include_router(
@@ -94,16 +74,21 @@ app.include_router(
 )
 
 app.include_router(
-    todos.router,
-    prefix="/todos",
-    tags=["todos"],
+    comments.router,
+    prefix="/comments",
+    tags=["comments"],
 )
 
 app.include_router(
-    users.router,
-    prefix="/users",
-    tags=["users"],
-    dependencies=[Depends(auth_util.get_current_active_user)]
+    auth.router,
+    prefix="/auth",
+    tags=["auth"],
+)
+
+app.include_router(
+    others.router,
+    prefix="/others",
+    tags=["others"],
 )
 
 app.router.route_class = logging.LoggingContextRoute
