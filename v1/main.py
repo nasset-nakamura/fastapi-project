@@ -91,11 +91,16 @@ app.include_router(
     others.router,
     prefix="/others",
     tags=["others"],
+    dependencies=[Depends(auth_util.get_current_active_user)]
 )
 
 app.router.route_class = logging.LoggingContextRoute
 
 
-@app.get("/", dependencies=[Depends(auth_util.get_current_active_user)])
+@app.get(
+    "/",
+    dependencies=[Depends(auth_util.get_current_active_user)],
+    summary="バージョン番号を取得する",
+)
 def root():
-    return {"message": "v1 root"}
+    return {"version": "1.0.0"}
