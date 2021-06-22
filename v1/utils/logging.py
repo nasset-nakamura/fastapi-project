@@ -59,12 +59,14 @@ class LoggingContextRoute(APIRoute):
         return response
 
     async def _logging_response(self, response: Response, record: dict) -> Optional[Response]:
+        if response is None:
+            return
+
         record["status"] = response.status_code
         record["response_headers"] = {
             k.decode("utf-8"): v.decode("utf-8") for (k, v) in response.headers.raw
         }
-        if response is None:
-            return
+
         try:
             record["response_body"] = json.loads(response.body.decode("utf-8"))
         except json.JSONDecodeError:
