@@ -1,7 +1,7 @@
 from datetime import datetime
 import time
 
-from fastapi import APIRouter, BackgroundTasks, Query
+from fastapi import APIRouter, BackgroundTasks, Query, Request, Response
 
 from ..utils import logging
 
@@ -34,3 +34,14 @@ async def background(
         "message": "background task start!",
         "datetime": datetime.now().strftime("%Y/%m/%d %H:%M:%S%Z"),
     }
+
+
+@router.get("/cookie")
+async def read_cookies(request: Request):
+    return {"test": request.cookies.get("test")}
+
+
+@router.post("/cookie")
+async def create_cookies(response: Response):
+    response.set_cookie(key="test", value="fastapi cookie")
+    return {"Save cookies with fastapi"}
