@@ -18,6 +18,16 @@ app.add_middleware(
 app.mount("/v1", v1_app)
 
 
+@app.on_event("startup")
+async def startup_event():
+    print("■■■ Startup FastAPI!!! ■■■")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    print("■■■ Shutdown FastAPI!!! ■■■")
+
+
 @app.get("/")
 def root():
     return {"message": "main root"}
