@@ -21,13 +21,14 @@ def background_sleep(sleep):
     })
 
 
-@router.post("/background")
+@router.post("/background", summary="Background Taskを実行する")
 async def background(
     background_tasks: BackgroundTasks,
     sleep: int = Query(
         ...,
         ge=1,
         le=30,
+        description="待機する秒数を指定。",
     ),
 ):
     background_tasks.add_task(background_sleep, sleep)
@@ -37,25 +38,25 @@ async def background(
     }
 
 
-@router.get("/cookie")
+@router.get("/cookie", summary="クライアントからクッキーを取得する")
 async def read_cookies(request: Request):
     return {"test": request.cookies.get("test")}
 
 
-@router.post("/cookie")
+@router.post("/cookie", summary="クライアントへクッキーを返却する")
 async def create_cookies(response: Response):
     response.set_cookie(key="test", value="fastapi cookie")
     return {"Save cookies with fastapi"}
 
 
-@router.get("/header1")
+@router.get("/header1", summary="カスタムヘッダーをレスポンスに追加する")
 async def read_header_1(response: Response):
     response.headers["X-Custom-String"] = "custom string"
     response.headers["X-Custom-Count"] = "100"
     return {"Return custom header"}
 
 
-@router.get("/header2")
+@router.get("/header2", summary="カスタムヘッダーをレスポンスに追加する")
 async def read_header_2():
     headers = {
         "X-Custom-String": "custom string",
