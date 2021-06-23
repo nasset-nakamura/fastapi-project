@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 import requests
 from typing import Optional
 
+from ..docs.routers import posts as docs_routers_posts
 from ..schemas.post import Post
 from ..utils import logging
 
@@ -15,106 +16,36 @@ response = requests.get(url)
 status_code = response.status_code
 posts = response.json()
 
-responses = {"get:/": {200: {"content": {"application/json": {"example": {"userId": 1,
-                                                                          "id": 1,
-                                                                          "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
-                                                                          "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"},
-                                                              },
-                                         },
-                             },
-                       400: {"content": {"application/json": {"example": {"message": "field: xxx not found"},
-                                                              },
-                                         },
-                             },
-                       404: {"content": {"application/json": {"example": {"message": "post not found"},
-                                                              },
-                                         },
-                             },
-                       },
-             "get:/id": {200: {"content": {"application/json": {"example": {"userId": 1,
-                                                                            "id": 1,
-                                                                            "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
-                                                                            "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"},
-                                                                },
-                                           },
-                               },
-                         400: {"content": {"application/json": {"example": {"message": "field: xxx not found"},
-                                                                },
-                                           },
-                               },
-                         404: {"content": {"application/json": {"example": {"message": "post not found"},
-                                                                },
-                                           },
-                               },
-                         },
-             "post:/": {201: {"content": {"application/json": {"example": {"id": 101,
-                                                                           "name": "test",
-                                                                           "title": "タイトル",
-                                                                           "body": "あいうえおカキクケコ"},
-                                                               },
-                                          },
-                              },
-                        },
-             "put:/id": {201: {"content": {"application/json": {"example": {"id": 101,
-                                                                            "name": "test",
-                                                                            "title": "タイトル",
-                                                                            "body": "あいうえおカキクケコ"},
-                                                                },
-                                           },
-                               },
-                         409: {"content": {"application/json": {"example": {"message": f"id.99 already exists"},
-                                                                },
-                                           },
-                               },
-                         },
-             "patch:/id": {200: {"content": {"application/json": {"example": {"userId": 1,
-                                                                              "id": 1,
-                                                                              "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
-                                                                              "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"},
-                                                                  },
-                                             },
-                                 },
-                           404: {"content": {"application/json": {"example": {"message": "post not found"},
-                                                                  },
-                                             },
-                                 },
-                           },
-             "delete:/id": {202: {"content": {"application/json": {"example": "nothing",
-                                                                   },
-                                              },
-                                  },
-                            404: {"content": {"application/json": {"example": {"message": "post not found"},
-                                                                   },
-                                              },
-                                  },
-                            }}
 
-
-@router.get("/", summary="投稿のリストを取得する", responses=responses["get:/"])
+@router.get(
+    "/",
+    summary=docs_routers_posts.read_posts["summary"],
+    responses=docs_routers_posts.read_posts["responses"],
+)
 async def read_posts(
     response: Response,
     size: int = Query(
         10,
         ge=1,
         le=100,
-        description="1ページあたりの取得件数を指定する。",
+        description=docs_routers_posts.read_posts["parameters"]["size"]["description"],
     ),
     page: int = Query(
         1,
         ge=1,
-        description="取得するページを指定する。",
+        description=docs_routers_posts.read_posts["parameters"]["page"]["description"],
     ),
     ids: Optional[str] = Query(
         None,
-        description="取得するデータのidを`1,2,3`のようにカンマ区切りで指定する。",
+        description=docs_routers_posts.read_posts["parameters"]["ids"]["description"],
     ),
     fields: Optional[str] = Query(
         None,
-        description="取得するデータのフィールドを`id,name,email`のようにカンマ区切りで指定する。",
+        description=docs_routers_posts.read_posts["parameters"]["fields"]["description"],
     ),
     orders: Optional[str] = Query(
         None,
-        description="取得するデータの並べ替えを行う。<br>指定可能なフィールドは**1つのみ**。<br>降順は`-id`のように、フィールド名の先頭に`- (マイナス)`を付与。",
+        description=docs_routers_posts.read_posts["parameters"]["orders"]["description"],
     ),
 ):
     # id
@@ -192,16 +123,20 @@ async def read_posts(
     return JSONResponse(headers=headers, content=content)
 
 
-@router.get("/{id}", summary="投稿を1件取得する", responses=responses["get:/id"])
+@router.get(
+    "/{id}",
+    summary=docs_routers_posts.read_post["summary"],
+    responses=docs_routers_posts.read_post["responses"],
+)
 async def read_post(
     id: int = Path(
         ...,
         ge=1,
-        description="取得するデータのidを指定する。",
+        description=docs_routers_posts.read_post["parameters"]["id"]["description"],
     ),
     fields: Optional[str] = Query(
         None,
-        description="取得するデータのフィールドを`id,name,email`のようにカンマ区切りで指定する。",
+        description=docs_routers_posts.read_post["parameters"]["fields"]["description"],
     ),
 ):
     # id
@@ -232,8 +167,12 @@ async def read_post(
     return tmp_post_2
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED,
-             summary="投稿を追加する", responses=responses["post:/"])
+@router.post(
+    "/",
+    status_code=status.HTTP_201_CREATED,
+    summary=docs_routers_posts.create_post["summary"],
+    responses=docs_routers_posts.create_post["responses"],
+)
 async def create_post(
     post: Post = Body(
         ...,
@@ -246,15 +185,18 @@ async def create_post(
     return tmp_post
 
 
-@router.put("/{id}",
-            status_code=status.HTTP_201_CREATED,
-            summary="idを指定して投稿を追加する", responses=responses["put:/id"])
+@router.put(
+    "/{id}",
+    status_code=status.HTTP_201_CREATED,
+    summary=docs_routers_posts.create_post_by_specifying_id["summary"],
+    responses=docs_routers_posts.create_post_by_specifying_id["responses"],
+)
 async def create_post_by_specifying_id(
     response: Response,
     id: int = Path(
         ...,
         ge=1,
-        description="追加するデータのidを指定する。",
+        description=docs_routers_posts.create_post_by_specifying_id["parameters"]["id"]["description"],
     ),
     post: Post = Body(
         ...,
@@ -270,13 +212,17 @@ async def create_post_by_specifying_id(
     return tmp_post
 
 
-@router.patch("/{id}", summary="投稿を更新する", responses=responses["patch:/id"])
+@router.patch(
+    "/{id}",
+    summary=docs_routers_posts.update_post["summary"],
+    responses=docs_routers_posts.update_post["responses"],
+)
 async def update_post(
     response: Response,
     id: int = Path(
         ...,
         ge=1,
-        description="更新するデータのidを指定する。",
+        description=docs_routers_posts.update_post["parameters"]["id"]["description"],
     ),
     post: Post = Body(
         ...,
@@ -300,15 +246,15 @@ async def update_post(
 @router.delete(
     "/{id}",
     status_code=status.HTTP_202_ACCEPTED,
-    summary="投稿を削除する",
-    responses=responses["delete:/id"]
+    summary=docs_routers_posts.delete_post["summary"],
+    responses=docs_routers_posts.delete_post["responses"],
 )
 async def delete_post(
     response: Response,
     id: int = Path(
         ...,
         ge=1,
-        description="削除するデータのidを指定する。",
+        description=docs_routers_posts.delete_post["parameters"]["id"]["description"],
     ),
 ):
     index = None

@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 
+from ..docs.schemas import post as docs_schemas_post
+
 
 class Post(BaseModel):
     userId: int = Field(
@@ -21,10 +23,4 @@ class Post(BaseModel):
     )
 
     class Config:
-        schema_extra = {
-            "example": {
-                "userId": 1,
-                "title": "タイトル",
-                "body": "あいうえおカキクケコ",
-            }
-        }
+        schema_extra = docs_schemas_post.Post
