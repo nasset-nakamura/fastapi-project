@@ -1,4 +1,7 @@
+import math
+
 from fastapi import APIRouter, Body, Path, Query, Response, status, HTTPException
+from fastapi.responses import JSONResponse
 import requests
 from typing import Optional
 
@@ -200,16 +203,16 @@ responses = {
 @router.get("/", summary="ユーザーのリストを取得する", responses=responses["get:/"])
 async def read_users(
     response: Response,
-    offset: int = Query(
-        0,
-        ge=0,
-        description="何件目から取得するかを指定する。<br>`limit`パラメータと組み合わせてページング処理が可能。",
-    ),
-    limit: int = Query(
+    size: int = Query(
         10,
-        ge=0,
-        le=30,
-        description="取得件数を指定する。<br>`offset`パラメータと組み合わせてページング処理が可能。",
+        ge=1,
+        le=100,
+        description="1ページあたりの取得件数を指定する。",
+    ),
+    page: int = Query(
+        1,
+        ge=1,
+        description="取得するページを指定する。",
     ),
     ids: Optional[str] = Query(
         None,
@@ -237,6 +240,19 @@ async def read_users(
     if len(tmp_users_1) == 0:
         response.status_code = status.HTTP_404_NOT_FOUND
         return {"message": "user not found"}
+
+    count = len(tmp_users_1)
+
+    max_page = math.ceil(count / size)
+    if page is None:
+        current_page = 1
+    elif page > max_page:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {"message": f"page: {page} not found"}
+    else:
+        current_page = page
+    offset = size * (current_page - 1)
+    limit = size * current_page
 
     # key-value、row
     if fields:
@@ -275,7 +291,15 @@ async def read_users(
     else:
         tmp_users_3 = tmp_users_2
 
-    return tmp_users_3
+    headers = {
+        "X-Users-Total-Count": str(count),
+        "X-Users-Count": str(len(tmp_users_3)),
+        "X-Users-Max-Page": str(max_page),
+        "X-Users-Current-Page": str(current_page),
+    }
+    content = tmp_users_3
+
+    return JSONResponse(headers=headers, content=content)
 
 
 @router.get("/{id}", summary="ユーザーを1件取得する", responses=responses["get:/id"])
