@@ -1,6 +1,12 @@
-from fastapi import APIRouter
-import requests
+import math
 
+from fastapi import APIRouter, Body, Path, Query, Response, status, HTTPException
+from fastapi.responses import JSONResponse
+import requests
+from typing import Optional
+
+from ..docs.routers import comments as docs_routers_comments
+from ..schemas.comment import Comment
 from ..utils import logging
 
 router = APIRouter(route_class=logging.LoggingContextRoute)
@@ -11,9 +17,255 @@ status_code = response.status_code
 comments = response.json()
 
 
-@router.get("/")
-async def read_comments():
-    return {
-        "status_code": status_code,
-        "comments": comments,
+@router.get(
+    "/",
+    summary=docs_routers_comments.read_comments["summary"],
+    responses=docs_routers_comments.read_comments["responses"],
+)
+async def read_comments(
+    response: Response,
+    size: int = Query(
+        10,
+        ge=1,
+        le=100,
+        description=docs_routers_comments.read_comments["parameters"]["size"]["description"],
+    ),
+    page: int = Query(
+        1,
+        ge=1,
+        description=docs_routers_comments.read_comments["parameters"]["page"]["description"],
+    ),
+    ids: Optional[str] = Query(
+        None,
+        description=docs_routers_comments.read_comments["parameters"]["ids"]["description"],
+    ),
+    fields: Optional[str] = Query(
+        None,
+        description=docs_routers_comments.read_comments["parameters"]["fields"]["description"],
+    ),
+    orders: Optional[str] = Query(
+        None,
+        description=docs_routers_comments.read_comments["parameters"]["orders"]["description"],
+    ),
+):
+    # id
+    if ids:
+        tmp_comments_1 = []
+        for id in ids.split(","):
+            for comment in comments:
+                if comment["id"] == int(id):
+                    tmp_comments_1.append(comment)
+    else:
+        tmp_comments_1 = comments
+
+    if len(tmp_comments_1) == 0:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {"message": "comment not found"}
+
+    count = len(tmp_comments_1)
+
+    max_page = math.ceil(count / size)
+    if page is None:
+        current_page = 1
+    elif page > max_page:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {"message": f"page: {page} not found"}
+    else:
+        current_page = page
+    offset = size * (current_page - 1)
+    limit = size * current_page
+
+    # sort
+    if orders:
+        if orders[0] == "-":
+            orders = orders[1:]
+            if orders in tmp_comments_1[0]:
+                tmp_comments_2 = sorted(
+                    tmp_comments_1, key=lambda item: (
+                        item[orders]), reverse=True)
+            else:
+                response.status_code = status.HTTP_400_BAD_REQUEST
+                return {"message": f"field: {orders} not found"}
+        else:
+            if orders in tmp_comments_1[0]:
+                tmp_comments_2 = sorted(
+                    tmp_comments_1, key=lambda item: (
+                        item[orders]))
+            else:
+                response.status_code = status.HTTP_400_BAD_REQUEST
+                return {"message": f"field: {orders} not found"}
+    else:
+        tmp_comments_2 = tmp_comments_1
+
+    # key-value、row
+    if fields:
+        tmp_comments_3 = []
+        for comment in tmp_comments_2[offset:offset + limit]:
+            tmp_comment = {}
+            for field in fields.split(","):
+                if field in comment:
+                    tmp_comment[field] = comment[field]
+                else:
+                    response.status_code = status.HTTP_400_BAD_REQUEST
+                    return {"message": f"field: {field} not found"}
+            tmp_comments_3.append(tmp_comment)
+    else:
+        tmp_comments_3 = tmp_comments_2[offset:offset + limit]
+
+    headers = {
+        "X-Comments-Total-Count": str(count),
+        "X-Comments-Count": str(len(tmp_comments_3)),
+        "X-Comments-Max-Page": str(max_page),
+        "X-Comments-Current-Page": str(current_page),
     }
+    content = tmp_comments_3
+
+    return JSONResponse(headers=headers, content=content)
+
+
+@router.get(
+    "/{id}",
+    summary=docs_routers_comments.read_comment["summary"],
+    responses=docs_routers_comments.read_comment["responses"],
+)
+async def read_comment(
+    id: int = Path(
+        ...,
+        ge=1,
+        description=docs_routers_comments.read_comment["parameters"]["id"]["description"],
+    ),
+    fields: Optional[str] = Query(
+        None,
+        description=docs_routers_comments.read_comment["parameters"]["fields"]["description"],
+    ),
+):
+    # id
+    tmp_comment_1 = None
+    for comment in comments:
+        if comment["id"] == id:
+            tmp_comment_1 = comment
+            break
+
+    if tmp_comment_1 is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="comment not found")
+
+    # key-value
+    if fields:
+        tmp_comment_2 = {}
+        for field in fields.split(","):
+            if field in tmp_comment_1:
+                tmp_comment_2[field] = tmp_comment_1[field]
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"field: {field} not found")
+    else:
+        tmp_comment_2 = tmp_comment_1
+
+    return tmp_comment_2
+
+
+@router.post(
+    "/",
+    status_code=status.HTTP_201_CREATED,
+    summary=docs_routers_comments.create_comment["summary"],
+    responses=docs_routers_comments.create_comment["responses"],
+)
+async def create_comment(
+    comment: Comment = Body(
+        ...,
+    ),
+):
+    id = max([comment["id"] for comment in comments]) + 1
+    tmp_comment = {"id": id, **comment.dict()}
+    comments.append(tmp_comment)
+
+    return tmp_comment
+
+
+@router.put("/{id}",
+            status_code=status.HTTP_201_CREATED,
+            summary=docs_routers_comments.create_comment_by_specifying_id["summary"],
+            responses=docs_routers_comments.create_comment_by_specifying_id["responses"],
+            )
+async def create_comment_by_specifying_id(
+    response: Response,
+    id: int = Path(
+        ...,
+        ge=1,
+        description=docs_routers_comments.create_comment_by_specifying_id["parameters"]["id"]["description"],
+    ),
+    comment: Comment = Body(
+        ...,
+    ),
+):
+    for tmp_comment in comments:
+        if tmp_comment["id"] == id:
+            response.status_code = status.HTTP_409_CONFLICT
+            return {"message": f"id.{id} already exists"}
+    tmp_comment = {"id": id, **comment.dict()}
+    comments.append(tmp_comment)
+
+    return tmp_comment
+
+
+@router.patch(
+    "/{id}",
+    summary=docs_routers_comments.update_comment["summary"],
+    responses=docs_routers_comments.update_comment["responses"],
+)
+async def update_comment(
+    response: Response,
+    id: int = Path(
+        ...,
+        ge=1,
+        description=docs_routers_comments.update_comment["parameters"]["id"]["description"],
+    ),
+    comment: Comment = Body(
+        ...,
+    ),
+):
+    index = None
+    for i, tmp_comment in enumerate(comments):
+        if tmp_comment["id"] == id:
+            index = i
+            break
+
+    if index is None:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {"message": "comment not found"}
+    else:
+        comments[index].update(**comment.dict())
+
+    return comments[index]
+
+
+@router.delete(
+    "/{id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary=docs_routers_comments.delete_comment["summary"],
+    responses=docs_routers_comments.delete_comment["responses"],
+)
+async def delete_comment(
+    response: Response,
+    id: int = Path(
+        ...,
+        ge=1,
+        description=docs_routers_comments.delete_comment["parameters"]["id"]["description"],
+    ),
+):
+    index = None
+    for i, comment in enumerate(comments):
+        if comment["id"] == id:
+            index = i
+            break
+
+    if index is None:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {"message": "comment not found"}
+    else:
+        comments.pop(index)
+
+    return
