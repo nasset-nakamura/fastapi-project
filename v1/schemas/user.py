@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 
+from ..docs.schemas import user as docs_schemas_user
+
 
 class User(BaseModel):
     name: str = Field(
@@ -23,13 +25,7 @@ class User(BaseModel):
     )
 
     class Config:
-        schema_extra = {
-            "example": {
-                "name": "test",
-                "username": "testuser",
-                "email": "test@example.com",
-            }
-        }
+        schema_extra = docs_schemas_user.User
 
 
 class UserDB(User):

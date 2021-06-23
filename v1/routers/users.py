@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 import requests
 from typing import Optional
 
+from ..docs.routers import users as docs_routers_users
 from ..schemas.user import User
 from ..utils import logging
 
@@ -15,216 +16,36 @@ res = requests.get(url)
 status_code = res.status_code
 users = res.json()
 
-responses = {
-    "get:/": {
-        200: {
-            "content": {
-                "application/json": {
-                    "example": {
-                        "id": 1,
-                        "name": "Leanne Graham",
-                        "username": "Bret",
-                        "email": "Sincere@april.biz",
-                        "address": {
-                                "street": "Kulas Light",
-                                "suite": "Apt. 556",
-                                "city": "Gwenborough",
-                                "zipcode": "92998-3874",
-                                "geo": {
-                                    "lat": "-37.3159",
-                                    "lng": "81.1496"
-                                }
-                        },
-                        "phone": "1-770-736-8031 x56442",
-                        "website": "hildegard.org",
-                        "company": {
-                            "name": "Romaguera-Crona",
-                            "catchPhrase": "Multi-layered client-server neural-net",
-                            "bs": "harness real-time e-markets"
-                        }
-                    },
-                },
-            },
-        },
-        400: {
-            "content": {
-                "application/json": {
-                    "example": {"message": "field: xxx not found"},
-                },
-            },
-        },
-        404: {
-            "content": {
-                "application/json": {
-                    "example": {"message": "user not found"},
-                },
-            },
-        },
-    },
-    "get:/id": {
-        200: {
-            "content": {
-                "application/json": {
-                    "example": {
-                        "id": 1,
-                        "name": "Leanne Graham",
-                        "username": "Bret",
-                        "email": "Sincere@april.biz",
-                        "address": {
-                            "street": "Kulas Light",
-                            "suite": "Apt. 556",
-                            "city": "Gwenborough",
-                            "zipcode": "92998-3874",
-                            "geo": {
-                                "lat": "-37.3159",
-                                "lng": "81.1496"
-                            }
-                        },
-                        "phone": "1-770-736-8031 x56442",
-                        "website": "hildegard.org",
-                        "company": {
-                            "name": "Romaguera-Crona",
-                            "catchPhrase": "Multi-layered client-server neural-net",
-                            "bs": "harness real-time e-markets"
-                        }
-                    },
-                },
-            },
-        },
-        400: {
-            "content": {
-                "application/json": {
-                    "example": {"message": "field: xxx not found"},
-                },
-            },
-        },
-        404: {
-            "content": {
-                "application/json": {
-                    "example": {"message": "user not found"},
-                },
-            },
-        },
-    },
-    "post:/": {
-        201: {
-            "content": {
-                "application/json": {
-                    "example": {
-                        "id": 11,
-                        "name": "test",
-                        "username": "testuser",
-                        "email": "test@example.com"
-                    },
-                },
-            },
-        },
-    },
-    "put:/id": {
-        201: {
-            "content": {
-                "application/json": {
-                    "example": {
-                        "id": 11,
-                        "name": "test",
-                        "username": "testuser",
-                        "email": "test@example.com"
-                    },
-                },
-            },
-        },
-        409: {
-            "content": {
-                "application/json": {
-                    "example": {
-                        "message": f"id.99 already exists"
-                    },
-                },
-            },
-        },
-    },
-    "patch:/id": {
-        200: {
-            "content": {
-                "application/json": {
-                    "example": {
-                        "id": 1,
-                        "name": "test",
-                        "username": "testuser",
-                        "email": "test@example.com",
-                        "address": {
-                            "street": "Kulas Light",
-                            "suite": "Apt. 556",
-                            "city": "Gwenborough",
-                            "zipcode": "92998-3874",
-                            "geo": {
-                                "lat": "-37.3159",
-                                "lng": "81.1496"
-                            }
-                        },
-                        "phone": "1-770-736-8031 x56442",
-                        "website": "hildegard.org",
-                        "company": {
-                            "name": "Romaguera-Crona",
-                            "catchPhrase": "Multi-layered client-server neural-net",
-                            "bs": "harness real-time e-markets"
-                        }
-                    }
-                },
-            },
-        },
-        404: {
-            "content": {
-                "application/json": {
-                    "example": {"message": "user not found"},
-                },
-            },
-        },
-    },
-    "delete:/id": {
-        202: {
-            "content": {
-                "application/json": {
-                    "example": "nothing",
-                },
-            },
-        },
-        404: {
-            "content": {
-                "application/json": {
-                    "example": {"message": "user not found"},
-                },
-            },
-        },
-    }
-}
 
-
-@router.get("/", summary="ユーザーのリストを取得する", responses=responses["get:/"])
+@router.get(
+    "/",
+    summary=docs_routers_users.read_users["summary"],
+    responses=docs_routers_users.read_users["responses"],
+)
 async def read_users(
     response: Response,
     size: int = Query(
         10,
         ge=1,
         le=100,
-        description="1ページあたりの取得件数を指定する。",
+        description=docs_routers_users.read_users["parameters"]["size"]["description"],
     ),
     page: int = Query(
         1,
         ge=1,
-        description="取得するページを指定する。",
+        description=docs_routers_users.read_users["parameters"]["page"]["description"],
     ),
     ids: Optional[str] = Query(
         None,
-        description="取得するデータのidを`1,2,3`のようにカンマ区切りで指定する。",
+        description=docs_routers_users.read_users["parameters"]["ids"]["description"],
     ),
     fields: Optional[str] = Query(
         None,
-        description="取得するデータのフィールドを`id,name,email`のようにカンマ区切りで指定する。",
+        description=docs_routers_users.read_users["parameters"]["fields"]["description"],
     ),
     orders: Optional[str] = Query(
         None,
-        description="取得するデータの並べ替えを行う。<br>指定可能なフィールドは**1つのみ**。<br>降順は`-id`のように、フィールド名の先頭に`- (マイナス)`を付与。",
+        description=docs_routers_users.read_users["parameters"]["orders"]["description"],
     ),
 ):
     # id
@@ -302,16 +123,20 @@ async def read_users(
     return JSONResponse(headers=headers, content=content)
 
 
-@router.get("/{id}", summary="ユーザーを1件取得する", responses=responses["get:/id"])
+@router.get(
+    "/{id}",
+    summary=docs_routers_users.read_user["summary"],
+    responses=docs_routers_users.read_user["responses"],
+)
 async def read_user(
     id: int = Path(
         ...,
         ge=1,
-        description="取得するデータのidを指定する。",
+        description=docs_routers_users.read_user["parameters"]["id"]["description"],
     ),
     fields: Optional[str] = Query(
         None,
-        description="取得するデータのフィールドを`id,name,email`のようにカンマ区切りで指定する。",
+        description=docs_routers_users.read_user["parameters"]["fields"]["description"],
     ),
 ):
     # id
@@ -342,8 +167,12 @@ async def read_user(
     return tmp_user_2
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED,
-             summary="ユーザーを追加する", responses=responses["post:/"])
+@router.post(
+    "/",
+    status_code=status.HTTP_201_CREATED,
+    summary=docs_routers_users.create_user["summary"],
+    responses=docs_routers_users.create_user["responses"],
+)
 async def create_user(
     user: User = Body(
         ...,
@@ -356,15 +185,18 @@ async def create_user(
     return tmp_user
 
 
-@router.put("/{id}",
-            status_code=status.HTTP_201_CREATED,
-            summary="idを指定してユーザーを追加する", responses=responses["put:/id"])
+@router.put(
+    "/{id}",
+    status_code=status.HTTP_201_CREATED,
+    summary=docs_routers_users.create_user_by_specifying_id["summary"],
+    responses=docs_routers_users.create_user_by_specifying_id["responses"],
+)
 async def create_user_by_specifying_id(
     response: Response,
     id: int = Path(
         ...,
         ge=1,
-        description="追加するデータのidを指定する。",
+        description=docs_routers_users.create_user_by_specifying_id["parameters"]["id"]["description"],
     ),
     user: User = Body(
         ...,
@@ -380,13 +212,17 @@ async def create_user_by_specifying_id(
     return tmp_user
 
 
-@router.patch("/{id}", summary="ユーザーを更新する", responses=responses["patch:/id"])
+@router.patch(
+    "/{id}",
+    summary=docs_routers_users.update_user["summary"],
+    responses=docs_routers_users.update_user["responses"],
+)
 async def update_user(
     response: Response,
     id: int = Path(
         ...,
         ge=1,
-        description="更新するデータのidを指定する。",
+        description=docs_routers_users.update_user["parameters"]["id"]["description"],
     ),
     user: User = Body(
         ...,
@@ -410,15 +246,15 @@ async def update_user(
 @router.delete(
     "/{id}",
     status_code=status.HTTP_202_ACCEPTED,
-    summary="ユーザーを削除する",
-    responses=responses["delete:/id"]
+    summary=docs_routers_users.delete_user["summary"],
+    responses=docs_routers_users.delete_user["responses"],
 )
 async def delete_user(
     response: Response,
     id: int = Path(
         ...,
         ge=1,
-        description="削除するデータのidを指定する。",
+        description=docs_routers_users.delete_user["parameters"]["id"]["description"],
     ),
 ):
     """
