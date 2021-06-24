@@ -7,7 +7,7 @@ from typing import Optional
 
 from ..docs.routers import posts as docs_routers_posts
 from ..schemas.post import Post
-from ..utils import logging
+from ..utils import condition, logging
 
 router = APIRouter(route_class=logging.LoggingContextRoute)
 
@@ -47,6 +47,10 @@ async def read_posts(
         None,
         description=docs_routers_posts.read_posts["parameters"]["orders"]["description"],
     ),
+    filters: Optional[str] = Query(
+        None,
+        description=docs_routers_posts.read_posts["parameters"]["filters"]["description"],
+    )
 ):
     # id
     if ids:
@@ -62,7 +66,42 @@ async def read_posts(
         response.status_code = status.HTTP_404_NOT_FOUND
         return {"message": "post not found"}
 
-    count = len(tmp_posts_1)
+    # filters
+    if filters:
+        filter = condition.get_condition(filters)
+
+        if filter["key"] not in tmp_posts_1[0]:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"message": f"field: {filter['key']} not found"}
+
+        if filter["condition"] == "equals":
+            tmp_posts_2 = []
+            for post in tmp_posts_1:
+                if isinstance(post[filter["key"]], int):
+                    if post[filter["key"]] == int(filter["value"]):
+                        tmp_posts_2.append(post)
+                elif isinstance(post[filter["key"]], str):
+                    if post[filter["key"]] == filter["value"]:
+                        tmp_posts_2.append(post)
+
+        elif filter["condition"] == "not_equals":
+            tmp_posts_2 = []
+            for post in tmp_posts_1:
+                if isinstance(post[filter["key"]], int):
+                    if post[filter["key"]] != int(filter["value"]):
+                        tmp_posts_2.append(post)
+                elif isinstance(post[filter["key"]], str):
+                    if post[filter["key"]] != filter["value"]:
+                        tmp_posts_2.append(post)
+
+        else:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"message": f"condition: {filter['condition']} not found"}
+
+    else:
+        tmp_posts_2 = tmp_posts_1
+
+    count = len(tmp_posts_2)
 
     max_page = math.ceil(count / size)
     if page is None:
@@ -78,28 +117,28 @@ async def read_posts(
     if orders:
         if orders[0] == "-":
             orders = orders[1:]
-            if orders in tmp_posts_1[0]:
-                tmp_posts_2 = sorted(
-                    tmp_posts_1, key=lambda item: (
+            if orders in tmp_posts_2[0]:
+                tmp_posts_3 = sorted(
+                    tmp_posts_2, key=lambda item: (
                         item[orders]), reverse=True)
             else:
                 response.status_code = status.HTTP_400_BAD_REQUEST
                 return {"message": f"field: {orders} not found"}
         else:
-            if orders in tmp_posts_1[0]:
-                tmp_posts_2 = sorted(
-                    tmp_posts_1, key=lambda item: (
+            if orders in tmp_posts_2[0]:
+                tmp_posts_3 = sorted(
+                    tmp_posts_2, key=lambda item: (
                         item[orders]))
             else:
                 response.status_code = status.HTTP_400_BAD_REQUEST
                 return {"message": f"field: {orders} not found"}
     else:
-        tmp_posts_2 = tmp_posts_1
+        tmp_posts_3 = tmp_posts_2
 
     # key-value、row
     if fields:
-        tmp_posts_3 = []
-        for post in tmp_posts_2[offset:offset + size]:
+        tmp_posts_4 = []
+        for post in tmp_posts_3[offset:offset + size]:
             tmp_post = {}
             for field in fields.split(","):
                 if field in post:
@@ -107,17 +146,17 @@ async def read_posts(
                 else:
                     response.status_code = status.HTTP_400_BAD_REQUEST
                     return {"message": f"field: {field} not found"}
-            tmp_posts_3.append(tmp_post)
+            tmp_posts_4.append(tmp_post)
     else:
-        tmp_posts_3 = tmp_posts_2[offset:offset + size]
+        tmp_posts_4 = tmp_posts_3[offset:offset + size]
 
     headers = {
         "X-Posts-Total-Count": str(count),
-        "X-Posts-Count": str(len(tmp_posts_3)),
+        "X-Posts-Count": str(len(tmp_posts_4)),
         "X-Posts-Max-Page": str(max_page),
         "X-Posts-Current-Page": str(current_page),
     }
-    content = tmp_posts_3
+    content = tmp_posts_4
 
     return JSONResponse(headers=headers, content=content)
 
