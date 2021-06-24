@@ -73,12 +73,33 @@ async def read_users(
     else:
         current_page = page
     offset = size * (current_page - 1)
-    limit = size * current_page
+
+    # sort
+    if orders:
+        if orders[0] == "-":
+            orders = orders[1:]
+            if orders in tmp_users_1[0]:
+                tmp_users_2 = sorted(
+                    tmp_users_1, key=lambda item: (
+                        item[orders]), reverse=True)
+            else:
+                response.status_code = status.HTTP_400_BAD_REQUEST
+                return {"message": f"field: {orders} not found"}
+        else:
+            if orders in tmp_users_1[0]:
+                tmp_users_2 = sorted(
+                    tmp_users_1, key=lambda item: (
+                        item[orders]))
+            else:
+                response.status_code = status.HTTP_400_BAD_REQUEST
+                return {"message": f"field: {orders} not found"}
+    else:
+        tmp_users_2 = tmp_users_1
 
     # key-value、row
     if fields:
-        tmp_users_2 = []
-        for user in tmp_users_1[offset:offset + limit]:
+        tmp_users_3 = []
+        for user in tmp_users_2[offset:offset + size]:
             tmp_user = {}
             for field in fields.split(","):
                 if field in user:
@@ -86,31 +107,9 @@ async def read_users(
                 else:
                     response.status_code = status.HTTP_400_BAD_REQUEST
                     return {"message": f"field: {field} not found"}
-            tmp_users_2.append(tmp_user)
+            tmp_users_3.append(tmp_user)
     else:
-        tmp_users_2 = tmp_users_1[offset:offset + limit]
-
-    # sort
-    if orders:
-        if orders[0] == "-":
-            orders = orders[1:]
-            if orders in tmp_users_2[0]:
-                tmp_users_3 = sorted(
-                    tmp_users_2, key=lambda item: (
-                        item[orders]), reverse=True)
-            else:
-                response.status_code = status.HTTP_400_BAD_REQUEST
-                return {"message": f"field: {orders} not found"}
-        else:
-            if orders in tmp_users_2[0]:
-                tmp_users_3 = sorted(
-                    tmp_users_2, key=lambda item: (
-                        item[orders]))
-            else:
-                response.status_code = status.HTTP_400_BAD_REQUEST
-                return {"message": f"field: {orders} not found"}
-    else:
-        tmp_users_3 = tmp_users_2
+        tmp_users_2 = tmp_users_1[offset:offset + size]
 
     headers = {
         "X-Users-Total-Count": str(count),
