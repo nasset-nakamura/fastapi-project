@@ -73,7 +73,6 @@ async def read_comments(
     else:
         current_page = page
     offset = size * (current_page - 1)
-    limit = size * current_page
 
     # sort
     if orders:
@@ -100,7 +99,7 @@ async def read_comments(
     # key-value、row
     if fields:
         tmp_comments_3 = []
-        for comment in tmp_comments_2[offset:offset + limit]:
+        for comment in tmp_comments_2[offset:offset + size]:
             tmp_comment = {}
             for field in fields.split(","):
                 if field in comment:
@@ -110,7 +109,7 @@ async def read_comments(
                     return {"message": f"field: {field} not found"}
             tmp_comments_3.append(tmp_comment)
     else:
-        tmp_comments_3 = tmp_comments_2[offset:offset + limit]
+        tmp_comments_3 = tmp_comments_2[offset:offset + size]
 
     headers = {
         "X-Comments-Total-Count": str(count),
