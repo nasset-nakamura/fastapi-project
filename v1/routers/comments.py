@@ -7,7 +7,7 @@ from typing import Optional
 
 from ..docs.routers import comments as docs_routers_comments
 from ..schemas.comment import Comment
-from ..utils import logging
+from ..utils import condition, logging
 
 router = APIRouter(route_class=logging.LoggingContextRoute)
 
@@ -47,6 +47,10 @@ async def read_comments(
         None,
         description=docs_routers_comments.read_comments["parameters"]["orders"]["description"],
     ),
+    filters: Optional[str] = Query(
+        None,
+        description=docs_routers_comments.read_comments["parameters"]["filters"]["description"],
+    ),
 ):
     # id
     if ids:
@@ -62,7 +66,42 @@ async def read_comments(
         response.status_code = status.HTTP_404_NOT_FOUND
         return {"message": "comment not found"}
 
-    count = len(tmp_comments_1)
+    # filters
+    if filters:
+        filter = condition.get_condition(filters)
+
+        if filter["key"] not in tmp_comments_1[0]:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"message": f"field: {filter['key']} not found"}
+
+        if filter["condition"] == "equals":
+            tmp_comments_2 = []
+            for comment in tmp_comments_1:
+                if isinstance(comment[filter["key"]], int):
+                    if comment[filter["key"]] == int(filter["value"]):
+                        tmp_comments_2.append(comment)
+                elif isinstance(comment[filter["key"]], str):
+                    if comment[filter["key"]] == filter["value"]:
+                        tmp_comments_2.append(comment)
+
+        elif filter["condition"] == "not_equals":
+            tmp_comments_2 = []
+            for comment in tmp_comments_1:
+                if isinstance(comment[filter["key"]], int):
+                    if comment[filter["key"]] != int(filter["value"]):
+                        tmp_comments_2.append(comment)
+                elif isinstance(comment[filter["key"]], str):
+                    if comment[filter["key"]] != filter["value"]:
+                        tmp_comments_2.append(comment)
+
+        else:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"message": f"condition: {filter['condition']} not found"}
+
+    else:
+        tmp_comments_2 = tmp_comments_1
+
+    count = len(tmp_comments_2)
 
     max_page = math.ceil(count / size)
     if page is None:
@@ -78,28 +117,28 @@ async def read_comments(
     if orders:
         if orders[0] == "-":
             orders = orders[1:]
-            if orders in tmp_comments_1[0]:
-                tmp_comments_2 = sorted(
-                    tmp_comments_1, key=lambda item: (
+            if orders in tmp_comments_2[0]:
+                tmp_comments_3 = sorted(
+                    tmp_comments_2, key=lambda item: (
                         item[orders]), reverse=True)
             else:
                 response.status_code = status.HTTP_400_BAD_REQUEST
                 return {"message": f"field: {orders} not found"}
         else:
-            if orders in tmp_comments_1[0]:
-                tmp_comments_2 = sorted(
-                    tmp_comments_1, key=lambda item: (
+            if orders in tmp_comments_2[0]:
+                tmp_comments_3 = sorted(
+                    tmp_comments_2, key=lambda item: (
                         item[orders]))
             else:
                 response.status_code = status.HTTP_400_BAD_REQUEST
                 return {"message": f"field: {orders} not found"}
     else:
-        tmp_comments_2 = tmp_comments_1
+        tmp_comments_3 = tmp_comments_2
 
     # key-value、row
     if fields:
-        tmp_comments_3 = []
-        for comment in tmp_comments_2[offset:offset + size]:
+        tmp_comments_4 = []
+        for comment in tmp_comments_3[offset:offset + size]:
             tmp_comment = {}
             for field in fields.split(","):
                 if field in comment:
@@ -107,17 +146,17 @@ async def read_comments(
                 else:
                     response.status_code = status.HTTP_400_BAD_REQUEST
                     return {"message": f"field: {field} not found"}
-            tmp_comments_3.append(tmp_comment)
+            tmp_comments_4.append(tmp_comment)
     else:
-        tmp_comments_3 = tmp_comments_2[offset:offset + size]
+        tmp_comments_4 = tmp_comments_3[offset:offset + size]
 
     headers = {
         "X-Comments-Total-Count": str(count),
-        "X-Comments-Count": str(len(tmp_comments_3)),
+        "X-Comments-Count": str(len(tmp_comments_4)),
         "X-Comments-Max-Page": str(max_page),
         "X-Comments-Current-Page": str(current_page),
     }
-    content = tmp_comments_3
+    content = tmp_comments_4
 
     return JSONResponse(headers=headers, content=content)
 
