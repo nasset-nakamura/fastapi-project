@@ -73,7 +73,6 @@ async def read_posts(
     else:
         current_page = page
     offset = size * (current_page - 1)
-    limit = size * current_page
 
     # sort
     if orders:
@@ -100,7 +99,7 @@ async def read_posts(
     # key-value、row
     if fields:
         tmp_posts_3 = []
-        for post in tmp_posts_2[offset:offset + limit]:
+        for post in tmp_posts_2[offset:offset + size]:
             tmp_post = {}
             for field in fields.split(","):
                 if field in post:
@@ -110,7 +109,7 @@ async def read_posts(
                     return {"message": f"field: {field} not found"}
             tmp_posts_3.append(tmp_post)
     else:
-        tmp_posts_3 = tmp_posts_2[offset:offset + limit]
+        tmp_posts_3 = tmp_posts_2[offset:offset + size]
 
     headers = {
         "X-Posts-Total-Count": str(count),
