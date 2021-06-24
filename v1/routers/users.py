@@ -109,7 +109,7 @@ async def read_users(
                     return {"message": f"field: {field} not found"}
             tmp_users_3.append(tmp_user)
     else:
-        tmp_users_2 = tmp_users_1[offset:offset + size]
+        tmp_users_3 = tmp_users_2[offset:offset + size]
 
     headers = {
         "X-Users-Total-Count": str(count),
