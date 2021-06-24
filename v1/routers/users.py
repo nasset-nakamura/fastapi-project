@@ -7,7 +7,7 @@ from typing import Optional
 
 from ..docs.routers import users as docs_routers_users
 from ..schemas.user import User
-from ..utils import logging
+from ..utils import condition, logging
 
 router = APIRouter(route_class=logging.LoggingContextRoute)
 
@@ -47,6 +47,10 @@ async def read_users(
         None,
         description=docs_routers_users.read_users["parameters"]["orders"]["description"],
     ),
+    filters: Optional[str] = Query(
+        None,
+        description=docs_routers_users.read_users["parameters"]["filters"]["description"],
+    )
 ):
     # id
     if ids:
@@ -62,7 +66,42 @@ async def read_users(
         response.status_code = status.HTTP_404_NOT_FOUND
         return {"message": "user not found"}
 
-    count = len(tmp_users_1)
+    # filters
+    if filters:
+        filter = condition.get_condition(filters)
+
+        if filter["key"] not in tmp_users_1[0]:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"message": f"field: {filter['key']} not found"}
+
+        if filter["condition"] == "equals":
+            tmp_users_2 = []
+            for user in tmp_users_1:
+                if isinstance(user[filter["key"]], int):
+                    if user[filter["key"]] == int(filter["value"]):
+                        tmp_users_2.append(user)
+                elif isinstance(user[filter["key"]], str):
+                    if user[filter["key"]] == filter["value"]:
+                        tmp_users_2.append(user)
+
+        elif filter["condition"] == "not_equals":
+            tmp_users_2 = []
+            for user in tmp_users_1:
+                if isinstance(user[filter["key"]], int):
+                    if user[filter["key"]] != int(filter["value"]):
+                        tmp_users_2.append(user)
+                elif isinstance(user[filter["key"]], str):
+                    if user[filter["key"]] != filter["value"]:
+                        tmp_users_2.append(user)
+
+        else:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"message": f"condition: {filter['condition']} not found"}
+
+    else:
+        tmp_users_2 = tmp_users_1
+
+    count = len(tmp_users_2)
 
     max_page = math.ceil(count / size)
     if page is None:
@@ -78,28 +117,28 @@ async def read_users(
     if orders:
         if orders[0] == "-":
             orders = orders[1:]
-            if orders in tmp_users_1[0]:
-                tmp_users_2 = sorted(
-                    tmp_users_1, key=lambda item: (
+            if orders in tmp_users_2[0]:
+                tmp_users_3 = sorted(
+                    tmp_users_2, key=lambda item: (
                         item[orders]), reverse=True)
             else:
                 response.status_code = status.HTTP_400_BAD_REQUEST
                 return {"message": f"field: {orders} not found"}
         else:
-            if orders in tmp_users_1[0]:
-                tmp_users_2 = sorted(
-                    tmp_users_1, key=lambda item: (
+            if orders in tmp_users_2[0]:
+                tmp_users_3 = sorted(
+                    tmp_users_2, key=lambda item: (
                         item[orders]))
             else:
                 response.status_code = status.HTTP_400_BAD_REQUEST
                 return {"message": f"field: {orders} not found"}
     else:
-        tmp_users_2 = tmp_users_1
+        tmp_users_3 = tmp_users_2
 
     # key-value、row
     if fields:
-        tmp_users_3 = []
-        for user in tmp_users_2[offset:offset + size]:
+        tmp_users_4 = []
+        for user in tmp_users_3[offset:offset + size]:
             tmp_user = {}
             for field in fields.split(","):
                 if field in user:
@@ -107,17 +146,17 @@ async def read_users(
                 else:
                     response.status_code = status.HTTP_400_BAD_REQUEST
                     return {"message": f"field: {field} not found"}
-            tmp_users_3.append(tmp_user)
+            tmp_users_4.append(tmp_user)
     else:
-        tmp_users_3 = tmp_users_2[offset:offset + size]
+        tmp_users_4 = tmp_users_3[offset:offset + size]
 
     headers = {
         "X-Users-Total-Count": str(count),
-        "X-Users-Count": str(len(tmp_users_3)),
+        "X-Users-Count": str(len(tmp_users_4)),
         "X-Users-Max-Page": str(max_page),
         "X-Users-Current-Page": str(current_page),
     }
-    content = tmp_users_3
+    content = tmp_users_4
 
     return JSONResponse(headers=headers, content=content)
 
