@@ -25,6 +25,9 @@ read_posts = {
                 "`equals`：条件に一致したデータを取得する。（例：`userId[equals]2`）<br>"
                 "`not_equals`：条件に一致しないデータを取得する。（例：`userId[not_equals]2`）",
         },
+        "embed": {
+            "description": "コメントデータを取得する場合はTrueを指定する。",
+        },
     },
     "responses": {
         200: {

@@ -16,6 +16,11 @@ res = requests.get(url)
 status_code = res.status_code
 users = res.json()
 
+url = 'https://jsonplaceholder.typicode.com/posts/'
+response = requests.get(url)
+status_code = response.status_code
+posts = response.json()
+
 
 @router.get(
     "/",
@@ -50,23 +55,29 @@ async def read_users(
     filters: Optional[str] = Query(
         None,
         description=docs_routers_users.read_users["parameters"]["filters"]["description"],
-    )
+    ),
+    embed: Optional[bool] = Query(
+        False,
+        description=docs_routers_users.read_users["parameters"]["embed"]["description"],
+    ),
 ):
     # id
+    tmp_users_1 = []
     if ids:
-        tmp_users_1 = []
         for id in ids.split(","):
             for user in users:
                 if user["id"] == int(id):
-                    tmp_users_1.append(user)
+                    tmp_users_1.append(user.copy())
     else:
-        tmp_users_1 = users
+        for user in users:
+            tmp_users_1.append(user.copy())
 
     if len(tmp_users_1) == 0:
         response.status_code = status.HTTP_404_NOT_FOUND
         return {"message": "user not found"}
 
     # filters
+    tmp_users_2 = []
     if filters:
         filter = condition.get_condition(filters)
 
@@ -75,7 +86,6 @@ async def read_users(
             return {"message": f"field: {filter['key']} not found"}
 
         if filter["condition"] == "equals":
-            tmp_users_2 = []
             for user in tmp_users_1:
                 if isinstance(user[filter["key"]], int):
                     if user[filter["key"]] == int(filter["value"]):
@@ -85,7 +95,6 @@ async def read_users(
                         tmp_users_2.append(user)
 
         elif filter["condition"] == "not_equals":
-            tmp_users_2 = []
             for user in tmp_users_1:
                 if isinstance(user[filter["key"]], int):
                     if user[filter["key"]] != int(filter["value"]):
@@ -114,6 +123,7 @@ async def read_users(
     offset = size * (current_page - 1)
 
     # sort
+    tmp_users_3 = []
     if orders:
         if orders[0] == "-":
             orders = orders[1:]
@@ -136,8 +146,8 @@ async def read_users(
         tmp_users_3 = tmp_users_2
 
     # key-value、row
+    tmp_users_4 = []
     if fields:
-        tmp_users_4 = []
         for user in tmp_users_3[offset:offset + size]:
             tmp_user = {}
             for field in fields.split(","):
@@ -150,13 +160,29 @@ async def read_users(
     else:
         tmp_users_4 = tmp_users_3[offset:offset + size]
 
+    # embed
+    tmp_users_5 = []
+    if embed:
+        tmp_user_posts = {}
+        for post in posts:
+            if post["userId"] not in tmp_user_posts:
+                tmp_user_posts[post["userId"]] = []
+            tmp_user_posts[post["userId"]].append(post)
+
+        for user in tmp_users_4:
+            user.update({"posts": tmp_user_posts[user["id"]]})
+            tmp_users_5.append(user)
+
+    else:
+        tmp_users_5 = tmp_users_4
+
     headers = {
         "X-Users-Total-Count": str(count),
-        "X-Users-Count": str(len(tmp_users_4)),
+        "X-Users-Count": str(len(tmp_users_5)),
         "X-Users-Max-Page": str(max_page),
         "X-Users-Current-Page": str(current_page),
     }
-    content = tmp_users_4
+    content = tmp_users_5
 
     return JSONResponse(headers=headers, content=content)
 
@@ -298,7 +324,7 @@ async def delete_user(
     """
     # docstringの記載内容もOpenAPIに反映される
 
-    ## 文字装飾
+    # 文字装飾
 
     **太字**<br>
     *斜体*<br>
@@ -307,7 +333,7 @@ async def delete_user(
 
     ---
 
-    ## リスト
+    # リスト
 
     - 番号なしリスト
     - 番号なしリスト
@@ -319,7 +345,7 @@ async def delete_user(
 
     ---
 
-    ## テーブル
+    # テーブル
 
     |左寄せ|中央寄せ|右寄せ|
     |:---|:---:|---:|
@@ -328,7 +354,7 @@ async def delete_user(
 
     ---
 
-    ## コード
+    # コード
 
     `title`タグにページタイトルを記載
 
@@ -339,7 +365,7 @@ async def delete_user(
 
     ---
 
-    ## リンク
+    # リンク
 
     [Google](https://google.com)
     """

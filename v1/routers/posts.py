@@ -16,6 +16,11 @@ response = requests.get(url)
 status_code = response.status_code
 posts = response.json()
 
+url = 'https://jsonplaceholder.typicode.com/comments/'
+response = requests.get(url)
+status_code = response.status_code
+comments = response.json()
+
 
 @router.get(
     "/",
@@ -50,23 +55,29 @@ async def read_posts(
     filters: Optional[str] = Query(
         None,
         description=docs_routers_posts.read_posts["parameters"]["filters"]["description"],
-    )
+    ),
+    embed: Optional[bool] = Query(
+        False,
+        description=docs_routers_posts.read_posts["parameters"]["embed"]["description"],
+    ),
 ):
     # id
+    tmp_posts_1 = []
     if ids:
-        tmp_posts_1 = []
         for id in ids.split(","):
             for post in posts:
                 if post["id"] == int(id):
-                    tmp_posts_1.append(post)
+                    tmp_posts_1.append(post.copy())
     else:
-        tmp_posts_1 = posts
+        for post in posts:
+            tmp_posts_1.append(post.copy())
 
     if len(tmp_posts_1) == 0:
         response.status_code = status.HTTP_404_NOT_FOUND
         return {"message": "post not found"}
 
     # filters
+    tmp_posts_2 = []
     if filters:
         filter = condition.get_condition(filters)
 
@@ -75,7 +86,6 @@ async def read_posts(
             return {"message": f"field: {filter['key']} not found"}
 
         if filter["condition"] == "equals":
-            tmp_posts_2 = []
             for post in tmp_posts_1:
                 if isinstance(post[filter["key"]], int):
                     if post[filter["key"]] == int(filter["value"]):
@@ -85,7 +95,6 @@ async def read_posts(
                         tmp_posts_2.append(post)
 
         elif filter["condition"] == "not_equals":
-            tmp_posts_2 = []
             for post in tmp_posts_1:
                 if isinstance(post[filter["key"]], int):
                     if post[filter["key"]] != int(filter["value"]):
@@ -114,6 +123,7 @@ async def read_posts(
     offset = size * (current_page - 1)
 
     # sort
+    tmp_posts_3 = []
     if orders:
         if orders[0] == "-":
             orders = orders[1:]
@@ -136,8 +146,8 @@ async def read_posts(
         tmp_posts_3 = tmp_posts_2
 
     # key-value、row
+    tmp_posts_4 = []
     if fields:
-        tmp_posts_4 = []
         for post in tmp_posts_3[offset:offset + size]:
             tmp_post = {}
             for field in fields.split(","):
@@ -150,13 +160,29 @@ async def read_posts(
     else:
         tmp_posts_4 = tmp_posts_3[offset:offset + size]
 
+    # embed
+    tmp_posts_5 = []
+    if embed:
+        tmp_post_comments = {}
+        for comment in comments:
+            if comment["postId"] not in tmp_post_comments:
+                tmp_post_comments[comment["postId"]] = []
+            tmp_post_comments[comment["postId"]].append(comment)
+
+        for post in tmp_posts_4:
+            post.update({"comments": tmp_post_comments[post["id"]]})
+            tmp_posts_5.append(post)
+
+    else:
+        tmp_posts_5 = tmp_posts_4
+
     headers = {
         "X-Posts-Total-Count": str(count),
-        "X-Posts-Count": str(len(tmp_posts_4)),
+        "X-Posts-Count": str(len(tmp_posts_5)),
         "X-Posts-Max-Page": str(max_page),
         "X-Posts-Current-Page": str(current_page),
     }
-    content = tmp_posts_4
+    content = tmp_posts_5
 
     return JSONResponse(headers=headers, content=content)
 

@@ -53,20 +53,22 @@ async def read_comments(
     ),
 ):
     # id
+    tmp_comments_1 = []
     if ids:
-        tmp_comments_1 = []
         for id in ids.split(","):
             for comment in comments:
                 if comment["id"] == int(id):
-                    tmp_comments_1.append(comment)
+                    tmp_comments_1.append(comment.copy())
     else:
-        tmp_comments_1 = comments
+        for comment in comments:
+            tmp_comments_1.append(comment.copy())
 
     if len(tmp_comments_1) == 0:
         response.status_code = status.HTTP_404_NOT_FOUND
         return {"message": "comment not found"}
 
     # filters
+    tmp_comments_2 = []
     if filters:
         filter = condition.get_condition(filters)
 
@@ -75,7 +77,6 @@ async def read_comments(
             return {"message": f"field: {filter['key']} not found"}
 
         if filter["condition"] == "equals":
-            tmp_comments_2 = []
             for comment in tmp_comments_1:
                 if isinstance(comment[filter["key"]], int):
                     if comment[filter["key"]] == int(filter["value"]):
@@ -85,7 +86,6 @@ async def read_comments(
                         tmp_comments_2.append(comment)
 
         elif filter["condition"] == "not_equals":
-            tmp_comments_2 = []
             for comment in tmp_comments_1:
                 if isinstance(comment[filter["key"]], int):
                     if comment[filter["key"]] != int(filter["value"]):
@@ -114,6 +114,7 @@ async def read_comments(
     offset = size * (current_page - 1)
 
     # sort
+    tmp_comments_3 = []
     if orders:
         if orders[0] == "-":
             orders = orders[1:]
@@ -136,8 +137,8 @@ async def read_comments(
         tmp_comments_3 = tmp_comments_2
 
     # key-value、row
+    tmp_comments_4 = []
     if fields:
-        tmp_comments_4 = []
         for comment in tmp_comments_3[offset:offset + size]:
             tmp_comment = {}
             for field in fields.split(","):
