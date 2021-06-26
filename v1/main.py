@@ -1,55 +1,17 @@
 from fastapi import Depends, FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
+from config import config
+from .docs import main as docs_main
 from .routers import auth, comments, others, posts, users
 from .utils import auth as auth_util
 from .utils import logging
 
-description = """
-## FastAPI
-
-Markdownで記載可能。
-
-- high performance
-- easy to learn
-- fast to code
-- ready for production
-"""
-
-tags_metadata = [{"name": "default",
-                  "description": "Default Endpoint",
-                  },
-                 {"name": "auth",
-                  "description": "OAuth2 with Password (and hashing), Bearer with JWT tokens",
-                  },
-                 {"name": "users",
-                  "description": "JSON Placeholder - Users Resource",
-                  "externalDocs": {"description": "URL",
-                                   "url": "https://jsonplaceholder.typicode.com/users",
-                                   },
-                  },
-                 {"name": "posts",
-                  "description": "JSON Placeholder - Posts Resource",
-                  "externalDocs": {"description": "URL",
-                                   "url": "https://jsonplaceholder.typicode.com/posts",
-                                   },
-                  },
-                 {"name": "comments",
-                  "description": "JSON Placeholder - Comments Resource",
-                  "externalDocs": {"description": "URL",
-                                   "url": "https://jsonplaceholder.typicode.com/comments",
-                                   },
-                  },
-                 {"name": "others",
-                  "description": "Other Endpoint",
-                  },
-                 ]
-
 app = FastAPI(
-    title="FastAPI Project Document",
-    version="1.0.0",
-    description=description,
-    openapi_tags=tags_metadata,
+    title=config.api_title,
+    version=config.api_version,
+    description=docs_main.app["description"],
+    openapi_tags=docs_main.app["tags_metadata"],
 )
 
 app.add_middleware(
@@ -99,8 +61,10 @@ app.router.route_class = logging.LoggingContextRoute
 
 @app.get(
     "/",
-    dependencies=[Depends(auth_util.get_current_active_user)],
-    summary="バージョン番号を取得する",
+    summary=docs_main.root["summary"],
+    responses=docs_main.root["responses"],
 )
 def root():
-    return {"version": "1.0.0"}
+    return {
+        "version": config.api_version,
+    }
